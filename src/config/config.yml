@@ -3,3 +3,9 @@ max_seq_length: 512
 frac_mask: 0.15
 batch_size: 16
 shuffle: True
+learning_rate: 0.00001
+optimizer: AdamW
+train_step: 1024
+val_step: 1024
+model_name: fine_tuned_bert
+weights_path: ./src/weights/bert_1/
