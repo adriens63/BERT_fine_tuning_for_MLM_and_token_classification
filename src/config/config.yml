@@ -1,1 +1,5 @@
 train_path: ../data/ref_comp.csv
+max_seq_length: 512
+frac_mask: 0.15
+batch_size: 16
+shuffle: True
