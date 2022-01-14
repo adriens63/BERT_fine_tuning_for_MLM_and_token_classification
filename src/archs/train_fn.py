@@ -1,7 +1,8 @@
+import torch
+
 import src.archs.trainer as t
 import src.archs.data_loader as dl
 import src.archs.helper as h
-
 
 
 
@@ -16,14 +17,17 @@ def train(config):
     optimizer_class = h.get_optimizer_class(config['optimizer'])
     optimizer = optimizer_class(bert.parameters(), lr = config['learning_rate'])
 
-    train_data_loader = dl.GetDataset(config['train_path'], 
+    get_ds = dl.GetDataset(config['train_path'], 
                             config['max_seq_length'], 
                             config['frac_msk'], 
                             config['batch_size'], 
-                            config['suffle'])
+                            config['shuffle'])
+    train_data_loader = get_ds.get_ds_ready()
     val_data_loader = None
 
-    trainer = t.Trainer(device = config['device'],
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    trainer = t.Trainer(device = device,
                         model = bert,
                         epochs = config['epochs'],
                         batch_size = config['batch_size'],

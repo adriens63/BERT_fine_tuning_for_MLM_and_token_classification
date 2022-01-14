@@ -1,6 +1,8 @@
-train_path: ../data/ref_comp.csv
+epochs: 5
+
+train_path: ./src/../data/ref_comp.csv
 max_seq_length: 512
-frac_mask: 0.15
+frac_msk: 0.15
 batch_size: 16
 shuffle: True
 learning_rate: 0.00001

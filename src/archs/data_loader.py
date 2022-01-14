@@ -60,7 +60,7 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
         self.encodings = encodings
 
 
-    def __get_item__(self, idx):
+    def __getitem__(self, idx):
 
         return {key : torch.tensor(val[idx]) for key, val in self.encodings.items()}
 

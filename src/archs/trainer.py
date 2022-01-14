@@ -22,10 +22,9 @@ class Trainer:
             train_steps,
             val_data_loader,
             val_steps,
-            checkpoint_frequency,
+            #TODO checkpoint_frequency,
             model_name,
             weights_path,
-            log_dir
             ) -> None:
         
         self.device = device
@@ -39,10 +38,10 @@ class Trainer:
         self.train_steps = train_steps
         self.val_data_loader = val_data_loader
         self.val_steps = val_steps
-        self.checkpoint_frequency = checkpoint_frequency
+        #TODO self.checkpoint_frequency = checkpoint_frequency
         self.model_name = model_name
         self.weights_path = weights_path
-        self.log_dir = log_dir
+        #TODO self.log_dir = log_dir
 
     def train(self):
 
