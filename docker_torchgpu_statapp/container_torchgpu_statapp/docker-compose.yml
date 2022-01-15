@@ -1,0 +1,15 @@
+version: '2.3'
+services:
+  tfgpu:
+    container_name: 'container_torchgpu_statapp'
+    build: ./img_torchgpu_statapp
+    image: img_torchgpu_statapp
+    #bien mettre image apres le build, pour renommer l'image ainsi built
+    ports:
+      - 8895:8888
+    volumes:
+      - ~/git/coding:/coding_linux20
+      - /media/adri/4ef7ced3-b0d8-4434-ba32-5e50aea55ee3/home/adri/git/coding:/coding
+    runtime: nvidia
+    command: tail -F anything
+    #the tail command will wait forever for the file anything to appear
