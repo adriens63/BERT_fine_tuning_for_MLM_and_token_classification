@@ -1,3 +1,4 @@
 draft.ipynb
 draft_2.ipynb
 *.pyc
+.~lock.*
