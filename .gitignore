@@ -1,4 +1,5 @@
 draft.ipynb
 draft_2.ipynb
 *.pyc
+fine_tuned_bert.pt
 .~lock.*
