@@ -15,5 +15,7 @@ if __name__ == '__main__':
     formatter = Formatter(path)
     formatter.generate_name()
     formatter.load()
-    formatter.format_to_TextLine()
+    formatter.format_to_jsonl()
     print('done;')
+    print()
+    print('/!\ Be careful to change the owner of the file before pasting it in doccano with the following command : sudo chown <user> <file>')
