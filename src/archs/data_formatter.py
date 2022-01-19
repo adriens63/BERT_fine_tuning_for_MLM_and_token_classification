@@ -12,6 +12,8 @@ PATH = './../statapp/data/'
 OFFRES = 'sample_offres.csv'
 CV = 'sample_cv.csv'
 LBL_DESC_OFFRES = 'dc_descriptifoffre'
+VERSION = '0.3'
+N_SEQUENCES = 50
 
 
 
@@ -27,7 +29,7 @@ class Formatter(FileLoader):
 
     def generate_name(self) -> None:
 
-        self.new_path = self.path[:-4] + '_v0.1' + '.txt'
+        self.new_path = self.path[:-4] + '_v' + VERSION + '.txt'
 
     def format_to_TextLine(self) -> None:
         
@@ -41,7 +43,7 @@ class Formatter(FileLoader):
 
         with open(self.new_path, 'w') as new:
             
-            for e in tqdm.tqdm(self.ds_dict[LBL_DESC_OFFRES]):
+            for e in tqdm.tqdm(self.ds_dict[LBL_DESC_OFFRES][:N_SEQUENCES]):
                 
                 new.write(e + '\n')
 
