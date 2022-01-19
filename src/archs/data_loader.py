@@ -4,8 +4,8 @@ import torch
 from transformers import BertTokenizer
 import numpy as np
 import numpy.typing as npt
-from typing import List
-
+from typing import List, Dict
+from torch.utils.data import  DataLoader
 
 
 
@@ -23,17 +23,22 @@ class FileLoader:
     def load(self) -> None:
         
         with open(self.path) as f:
+
             csv_reader = csv.reader(f)
             
             categories = next(csv_reader)
             
             self.ds_dict = {}
             for cat in categories:
+
                 self.ds_dict[cat] = []
             
-            for s in csv_reader:
+            for s in tqdm.tqdm(csv_reader):
+
                 for i, cat in enumerate(categories):
+
                     self.ds_dict[cat].append(s[i])
+
 
 
 
@@ -44,7 +49,7 @@ class Word2Int:
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 
-    def vectorize(self, sequences, max_seq_length, tensor_kind = 'pt'):
+    def vectorize(self, sequences: List[str], max_seq_length: int, tensor_kind: str = 'pt') -> Dict[str, torch.Tensor]:
 
         inp = self.tokenizer(sequences, return_tensors = tensor_kind, max_length = max_seq_length, truncation = True, padding = 'max_length')
 
@@ -55,29 +60,39 @@ class Word2Int:
 
 class JobDescriptionDataset(torch.utils.data.Dataset):
 
-    def __init__(self, encodings):
+    def __init__(self, encodings: Dict[str, torch.Tensor]) -> None:
 
         self.encodings = encodings
 
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
 
-        return {key : torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        return {key : val[idx].clone().detach() for key, val in self.encodings.items()}
 
 
-    def __len__(self):
+    def __len__(self) -> int:
 
         return self.encodings['input_ids'].shape[0]
 
 
 
+
 class MaskBlock:
 
-    def __init__(self, frac_msk) -> None:
+    def __init__(self, frac_msk: float) -> None:
         
         self.frac_msk = frac_msk
 
-    def get_msk(self, tok) -> npt.NDArray:
+
+    def get_msk(self, tok: torch.Tensor) -> npt.NDArray:
+        """[summary]
+
+        Args:
+            tok (Tensor): Tensor of tokenized sentences
+
+        Returns:
+            npt.NDArray: The mask
+        """
 
         rand = torch.rand(tok.shape)
         
@@ -86,7 +101,8 @@ class MaskBlock:
     
         return msk
 
-    def get_masked_idx(self, msk) -> List:
+
+    def get_masked_idx(self, msk: npt.NDArray) -> List:
 
         self.selection = []
 
@@ -95,6 +111,8 @@ class MaskBlock:
             self.selection.append(torch.flatten(msk[row].nonzero()).tolist())
 
         return self.selection
+
+
 
 
 class GetDataset:
@@ -109,7 +127,8 @@ class GetDataset:
         self.batch_size = batch_size
         self.shuffle = shuffle
 
-    def get_sequences(self):
+
+    def get_sequences(self) -> List[str]:
         
         if not hasattr(self.fl, 'ds_dict'):
 
@@ -120,8 +139,7 @@ class GetDataset:
         return sequences
 
 
-
-    def get_ds_ready(self):
+    def get_ds_ready(self) -> DataLoader:
 
         seq = self.get_sequences()
 
@@ -134,7 +152,6 @@ class GetDataset:
         inp['labels'] = inp['input_ids'].detach().clone()
 
         msk = self.m.get_msk(inp['input_ids'])
-
         idx = self.m.get_masked_idx(msk)
 
         for row in range(inp['input_ids'].shape[0]):
@@ -142,7 +159,6 @@ class GetDataset:
             inp['input_ids'][row, idx[row]] = 103
 
         dataset = JobDescriptionDataset(encodings = inp)
-
         dataloader = torch.utils.data.DataLoader(dataset, batch_size = self.batch_size, shuffle = self.shuffle)
 
         return dataloader

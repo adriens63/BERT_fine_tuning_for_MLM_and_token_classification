@@ -1,4 +1,5 @@
 import torch
+import gc
 
 import src.archs.trainer as t
 import src.archs.data_loader as dl
@@ -8,9 +9,17 @@ import src.archs.helper as h
 
 
 
-# **************** training *******************
+# *************** emptying cache **********
+gc.collect()
+torch.cuda.empty_cache()
 
-def train(config):
+
+
+
+
+# **************** training ****************
+
+def train(config) -> None:
 
     bert = h.get_model()
 
@@ -26,6 +35,8 @@ def train(config):
     val_data_loader = None
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print('.... Device is :', device)
+    print('done;')
 
     trainer = t.Trainer(device = device,
                         model = bert,
@@ -47,4 +58,4 @@ def train(config):
     trainer.train()
     trainer.save_model()
 
-    print('bert saved to directory: ', config['weights_path'])
+    print('Bert saved to directory: ', config['weights_path'])

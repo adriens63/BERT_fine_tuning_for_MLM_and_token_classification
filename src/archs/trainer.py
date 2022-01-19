@@ -1,6 +1,8 @@
 import torch
 from tqdm import tqdm
 import os
+import os.path as osp
+
 
 
 
@@ -28,7 +30,7 @@ class Trainer:
             ) -> None:
         
         self.device = device
-        self.model = model
+        self.model = model.to(device)
         self.epochs = epochs
         self.batch_size = batch_size
         self.loss_fn = loss_fn
@@ -43,7 +45,10 @@ class Trainer:
         self.weights_path = weights_path
         #TODO self.log_dir = log_dir
 
-    def train(self):
+
+    def train(self) -> None:
+
+        print('.... Start training')
 
         for e in range(self.epochs):
             self._train_step()
@@ -55,11 +60,12 @@ class Trainer:
                     # self.loss["val"][-1],
                 )
             )
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
 
-            self.lr_scheduler.step()
+        print('done;')
 
-
-    def _train_step(self):
+    def _train_step(self) -> None:
         
         loop = tqdm(self.train_data_loader)
         for batch in loop:
@@ -82,7 +88,16 @@ class Trainer:
             # if i == self.train_steps:
             #     break
     
-    def save_model(self):
+    def save_model(self) -> None:
 
-        model_path = os.path.join(self.model_dir, "model.pt")
-        torch.save(self.model, model_path)
+        print('.... Save model')
+        
+        model_path = osp.join(self.weights_path, self.model_name)
+        
+        if not osp.exists(model_path):
+            os.makedirs(model_path)
+
+        
+        torch.save(self.model, model_path + '/' + self.model_name + '.pt')
+
+        print('done;')
