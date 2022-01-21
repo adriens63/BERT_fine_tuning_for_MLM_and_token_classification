@@ -2,6 +2,7 @@ import csv
 import tqdm
 import torch
 from transformers import BertTokenizer
+#from transformers import CamembertTokenizer
 import numpy as np
 import numpy.typing as npt
 from typing import List, Dict
@@ -86,6 +87,8 @@ class MaskBlock:
 
     def get_msk(self, tok: torch.Tensor) -> npt.NDArray:
         """[summary]
+        'True' are masked
+        We don't want to mask padding token nor first or last token
 
         Args:
             tok (Tensor): Tensor of tokenized sentences
