@@ -47,7 +47,7 @@ class Word2Int:
 
     def __init__(self) -> None:
 
-        self.tokenizer = BertTokenizer.from_pretrained("camembert-base")
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 
     def vectorize(self, sequences: List[str], max_seq_length: int, tensor_kind: str = 'pt') -> Dict[str, torch.Tensor]:
