@@ -1,7 +1,7 @@
 import csv
 import tqdm
 import torch
-from transformers import CamembertTokenizer
+from transformers.tokenization_camembert import CamembertTokenizer
 import numpy as np
 import numpy.typing as npt
 from typing import List, Dict

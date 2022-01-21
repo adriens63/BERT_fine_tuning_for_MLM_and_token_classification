@@ -1,4 +1,5 @@
-from transformers import  CamembertForMaskedLM, AdamW
+from transformers import  AdamW
+from transformers.modeling_camembert import CamembertForMaskedLM
 
 
 
