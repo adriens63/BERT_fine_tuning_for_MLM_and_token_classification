@@ -1,5 +1,6 @@
 from transformers import  AdamW
-from transformers.modeling_camembert import CamembertForMaskedLM
+from transformers import  BertForMaskedLM, AdamW
+#from transformers import CamembertForMaskedLM
 
 
 
@@ -9,7 +10,7 @@ from transformers.modeling_camembert import CamembertForMaskedLM
 
 def get_model():
 
-    return CamembertForMaskedLM.from_pretrained('bert-base-uncased')
+    return BertForMaskedLM.from_pretrained('bert-base-uncased')
 
 
 

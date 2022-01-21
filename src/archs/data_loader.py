@@ -1,7 +1,8 @@
 import csv
 import tqdm
 import torch
-from transformers.tokenization_camembert import CamembertTokenizer
+from transformers import BertTokenizer
+#from transformers import CamembertTokenizer
 import numpy as np
 import numpy.typing as npt
 from typing import List, Dict
@@ -46,7 +47,7 @@ class Word2Int:
 
     def __init__(self) -> None:
 
-        self.tokenizer = CamembertTokenizer.from_pretrained("camembert-base")
+        self.tokenizer = BertTokenizer.from_pretrained("camembert-base")
 
 
     def vectorize(self, sequences: List[str], max_seq_length: int, tensor_kind: str = 'pt') -> Dict[str, torch.Tensor]:
