@@ -1,9 +1,9 @@
-from src.archs.data_loader import FileLoader
-
 import tqdm
 import jsonlines
 import yaml
 from math import ceil
+
+from src.archs.data_loader import FileLoader
 
 
 
