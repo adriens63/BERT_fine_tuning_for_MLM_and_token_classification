@@ -2,6 +2,7 @@ all2.jsonl
 adri.jsonl
 draft/
 *.ipynb
+train_nb.ipynb
 *.pyc
 fine_tuned_bert.pt
 .~lock.*
