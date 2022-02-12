@@ -3,7 +3,7 @@ import jsonlines
 import yaml
 from math import ceil
 
-from src.archs.data_loader import FileLoader
+from src.mlm.archs.data_loader import FileLoader
 
 
 

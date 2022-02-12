@@ -1,4 +1,4 @@
-from src.archs.data_formatter import *
+from src.token_classification.archs.data_formatter import *
 import os.path as osp
 
 
@@ -6,7 +6,7 @@ import os.path as osp
 
 
 # ********************* launch formating ***********************
-# cmd to launch : python -m src.format
+# cmd to launch : python -m src.token_classification.format
 
 if __name__ == '__main__':
     

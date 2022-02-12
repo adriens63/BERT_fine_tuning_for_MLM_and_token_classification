@@ -1,9 +1,9 @@
 import torch
 import gc
 
-import src.archs.trainer as t
-import src.archs.data_loader as dl
-import src.archs.helper as h
+import src.mlm.archs.trainer as t
+import src.mlm.archs.data_loader as dl
+import src.mlm.models.camembert as c
 
 
 
@@ -21,9 +21,9 @@ torch.cuda.empty_cache()
 
 def train(config) -> None:
 
-    bert = h.get_model()
+    bert = c.get_model()
 
-    optimizer_class = h.get_optimizer_class(config['optimizer'])
+    optimizer_class = c.get_optimizer_class(config['optimizer'])
     optimizer = optimizer_class(bert.parameters(), lr = config['learning_rate'])
 
     get_ds = dl.GetDataset(config['train_path'], 
