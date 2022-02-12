@@ -1,5 +1,12 @@
 import jsonlines
 import re
+import string
+from transformers import CamembertTokenizer
+
+
+
+# **************** ctes ******************
+MAX_LENGTH = 512
 
 
 
@@ -7,10 +14,15 @@ import re
 
 # ************** tools *********************
 
-def remove_first_and_last_spaces(s: str) -> str:
+def standardize(s: str) -> str:
 
-    expression_spaces = re.compile('^\s*|\s*$')
-    return re.sub(expression_spaces, '', s)
+    d = {}
+    for e in string.punctuation:#TODO mettre que les virgules et différents points
+        d[e] = e + ' '
+
+    translator = str.maketrans(d)
+
+    return s.translate(translator)
 
 
 
@@ -39,28 +51,32 @@ class JsonlLoader:
         #TODO : mettre un codage <$$€> par catégorie de soft skills quand elles seront définies
 
         masked_sequences = []
+        tokenizer = CamembertTokenizer.from_pretrained('camembert-base') # le tokenizer donne les mêmes token au même mot
 
         for line in self.lines:
             labels = line['label']
             sequence = line['data']
 
+            idx = []
+
             for label in labels:
                 start, end, label_kind = label
-                marked_words = sequence[start:end]
+                marked_words = standardize(sequence[start:end])
                 print(f'marked word : {marked_words}')
 
                 # remove first and last spaces of the beginning
-                begining_sequence = remove_first_and_last_spaces(sequence[:start])
-
-                # remove first and last spaces of the end of the sentences
-                end_sequence = remove_first_and_last_spaces(sequence[end:])
-
-                n_words = len(marked_words.split())
+                beg_sequence = standardize(sequence[:start])
                 
-                new_sequence = begining_sequence + ' <£$€>'*n_words + ' ' + end_sequence
-                print(new_sequence)
-                print()
+                # tokenizing
+                tok_marked_words = tokenizer(marked_words, return_tensors = 'pt', max_length = MAX_LENGTH, truncation = True)['input_ids']
+                tok_beg_sequence = tokenizer(beg_sequence, return_tensors = 'pt', max_length = MAX_LENGTH, truncation = True)['input_ids']
 
-                masked_sequences.append(new_sequence)
+                start_marked = tok_beg_sequence.shape[-1] - 2
+
+                for i in range(tok_marked_words.shape[-1] - 2):
+                    idx.append(start_marked + i) # les indices du mak sont là dedans
+
+
+            masked_sequences.append(idx)
         
         return masked_sequences

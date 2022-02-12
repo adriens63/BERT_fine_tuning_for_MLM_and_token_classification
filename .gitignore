@@ -1,5 +1,7 @@
-draft.ipynb
-draft_2.ipynb
+all2.jsonl
+adri.jsonl
+draft/
+*.ipynb
 *.pyc
 fine_tuned_bert.pt
 .~lock.*
