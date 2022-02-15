@@ -44,7 +44,7 @@ class Trainer:
         self.model_name = model_name
         self.weights_path = weights_path
         #TODO self.log_dir = log_dir
-        
+
         self.metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
 
@@ -55,12 +55,13 @@ class Trainer:
 
         for e in range(self.epochs):
             self._train_step()
+            self._val_step()
             print(
-                "Epoch: {}/{} ".format(
+                "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
                     e + 1,
                     self.epochs,
-                    # self.loss["train"][-1],
-                    # self.loss["val"][-1],
+                    self.loss["train"][-1],
+                    self.loss["val"][-1],
                 )
             )
             if self.lr_scheduler is not None:
@@ -111,6 +112,16 @@ class Trainer:
             self.metric.add_batch(predictions=predictions, references=batch["labels"])
 
         self.metric.compute()
+
+
+    def _save_checkpoint(self, epoch):
+        """Save model checkpoint to `self.model_dir` directory"""
+        epoch_num = epoch + 1
+        if epoch_num % self.checkpoint_frequency == 0:
+            model_path = "checkpoint_{}.pt".format(str(epoch_num).zfill(3))
+            model_path = os.path.join(self.model_dir, model_path)
+            torch.save(self.model, model_path)
+
 
     def save_model(self) -> None:
 
