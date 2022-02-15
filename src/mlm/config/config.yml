@@ -10,4 +10,5 @@ optimizer: AdamW
 train_step: 1024
 val_step: 1024
 model_name: fine_tuned_bert
-weights_path: ./src/weights/
+weights_path: ./src/mlm/weights/
+checkpoint_frequency: 2

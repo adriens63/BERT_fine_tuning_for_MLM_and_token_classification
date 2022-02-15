@@ -49,7 +49,7 @@ def train(config) -> None:
                         train_steps = config['train_step'],
                         val_data_loader = None,
                         val_steps = config['val_step'],
-                        #checkpoint_frequency = config['checkpoint_frequency'],
+                        checkpoint_frequency = config['checkpoint_frequency'],
                         model_name = config['model_name'],
                         weights_path = config['weights_path'],
                         #log_dir = config['log_path']

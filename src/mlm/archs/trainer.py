@@ -3,6 +3,8 @@ from tqdm import tqdm
 import os
 import os.path as osp
 from datasets import load_metric
+import numpy as np
+import json
 
 
 
@@ -24,7 +26,7 @@ class Trainer:
             train_steps,
             val_data_loader,
             val_steps,
-            #TODO checkpoint_frequency,
+            checkpoint_frequency,
             model_name,
             weights_path,
             ) -> None:
@@ -40,10 +42,12 @@ class Trainer:
         self.train_steps = train_steps
         self.val_data_loader = val_data_loader
         self.val_steps = val_steps
-        #TODO self.checkpoint_frequency = checkpoint_frequency
+        self.checkpoint_frequency = checkpoint_frequency
         self.model_name = model_name
         self.weights_path = weights_path
-        #TODO self.log_dir = log_dir
+        self.mod_dir = weights_path + model_name + '/'
+        #self.log_dir = weights_path + model_name + '/log_dir/'
+        self.ckp_dir = weights_path + model_name + '/ckp_dir/'
 
         self.metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
@@ -67,12 +71,21 @@ class Trainer:
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
 
+            if self.checkpoint_frequency:
+                    self._save_checkpoint(e)
+
+
         print('done;')
+        print()
 
     def _train_step(self) -> None:
         
+        self.model.train()
+
         loop = tqdm(self.train_data_loader)
-        for batch in loop:
+        running_loss = []  
+
+        for i, batch in enumerate(loop):
             self.optimizer.zero_grad()
 
             input_ids = batch['input_ids'].to(self.device)
@@ -87,17 +100,26 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
+            running_loss.append(loss.item())
+
             loop.set_postfix(loss = loss.item())
             
-            # if i == self.train_steps:
-            #     break
+            if i == self.train_steps:
+                break
         
+        epoch_loss = np.mean(running_loss) #TODO: on utilise np ou pas
+        self.loss["train"].append(epoch_loss)
+        
+
+
     def _val_step(self) -> None:
 
         self.model.eval()
 
         loop = tqdm(self.val_data_loader)
-        for batch in loop:
+        running_loss = []
+
+        for i, batch in enumerate(loop):
 
             input_ids = batch['input_ids'].to(self.device)
             attention_mask = batch['attention_mask'].to(self.device)
@@ -107,20 +129,38 @@ class Trainer:
 
                 out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
 
+            loss = out.loss
+
+            running_loss.append(loss.item())
+
             logits = out.logits
-            predictions = torch.argmax(logits, dim=-1)
+            predictions = torch.argmax(logits, dim= -1)
             self.metric.add_batch(predictions=predictions, references=batch["labels"])
 
+            if i == self.val_steps:
+                    break
+
+        epoch_loss = np.mean(running_loss)
+        self.loss["val"].append(epoch_loss)
         self.metric.compute()
 
 
-    def _save_checkpoint(self, epoch):
+    def _save_checkpoint(self, epoch: int) -> None:
         """Save model checkpoint to `self.model_dir` directory"""
+
         epoch_num = epoch + 1
         if epoch_num % self.checkpoint_frequency == 0:
+            
+            print('.... Saving ckp')
             model_path = "checkpoint_{}.pt".format(str(epoch_num).zfill(3))
-            model_path = os.path.join(self.model_dir, model_path)
-            torch.save(self.model, model_path)
+            model_path = osp.join(self.ckp_dir, model_path)
+            torch.save({
+                        'model_state_dict': self.model.state_dict(),
+                        'optimizer_state_dict': self.optimizer.state_dict(),
+                        'epoch': epoch
+                    }, model_path)
+            print('done;')
+            print()
 
 
     def save_model(self) -> None:
@@ -136,3 +176,12 @@ class Trainer:
         torch.save(self.model, model_path + '/' + self.model_name + '.pt')
 
         print('done;')
+        print()
+
+    
+    def save_loss(self) -> None:
+
+        """Save train/val loss as json file to `self.model_dir` directory"""
+        loss_path = os.path.join(self.model_dir, "loss.json")
+        with open(loss_path, "w") as fp:
+            json.dump(self.loss, fp)
