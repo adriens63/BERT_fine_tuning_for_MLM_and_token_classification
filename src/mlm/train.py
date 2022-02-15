@@ -8,7 +8,7 @@ import src.mlm.archs.train_fn as t_fn
 
 
 # ********************* launch training ***********************
-# cmd to launch : python -m src.mlm.train --config ./src/config/config.yml
+# cmd to launch : python -m src.mlm.train --config ./src/mlm/config/config.yml
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'bert training')

@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 import os
 import os.path as osp
-
+from datasets import load_metric
 
 
 
@@ -44,6 +44,9 @@ class Trainer:
         self.model_name = model_name
         self.weights_path = weights_path
         #TODO self.log_dir = log_dir
+        
+        self.metric = load_metric('accuracy')
+        self.loss = {"train": [], "val": []}
 
 
     def train(self) -> None:
@@ -83,11 +86,32 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-            loop.set_postfix(loss=loss.item())
+            loop.set_postfix(loss = loss.item())
             
             # if i == self.train_steps:
             #     break
-    
+        
+    def _val_step(self) -> None:
+
+        self.model.eval()
+
+        loop = tqdm(self.val_data_loader)
+        for batch in loop:
+
+            input_ids = batch['input_ids'].to(self.device)
+            attention_mask = batch['attention_mask'].to(self.device)
+            labels = batch['labels'].to(self.device)
+
+            with torch.no_grad():
+
+                out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
+
+            logits = out.logits
+            predictions = torch.argmax(logits, dim=-1)
+            self.metric.add_batch(predictions=predictions, references=batch["labels"])
+
+        self.metric.compute()
+
     def save_model(self) -> None:
 
         print('.... Save model')

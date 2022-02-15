@@ -8,6 +8,8 @@ import numpy.typing as npt
 from typing import List, Dict
 from torch.utils.data import  DataLoader
 
+from src.mlm.tools.timer import timeit
+
 
 
 
@@ -50,7 +52,7 @@ class Word2Int:
         #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
 
-
+    @timeit
     def vectorize(self, sequences: List[str], max_seq_length: int, tensor_kind: str = 'pt') -> Dict[str, torch.Tensor]:
 
         inp = self.tokenizer(sequences, return_tensors = tensor_kind, max_length = max_seq_length, truncation = True, padding = 'max_length')
@@ -148,11 +150,10 @@ class GetDataset:
         seq = self.get_sequences()
 
         print('.... Start tokenizing sequences')
-
         inp = self.w2i.vectorize(seq, self.max_seq_length)
-
         print('done;')
 
+        print('.... Start masking')
         inp['labels'] = inp['input_ids'].detach().clone()
 
         msk = self.m.get_msk(inp['input_ids'])
@@ -161,6 +162,8 @@ class GetDataset:
         for row in range(inp['input_ids'].shape[0]):
 
             inp['input_ids'][row, idx[row]] = 103
+        print('done;')
+
 
         dataset = JobDescriptionDataset(encodings = inp)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size = self.batch_size, shuffle = self.shuffle)
