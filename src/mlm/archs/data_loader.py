@@ -139,7 +139,7 @@ class GetDataset:
 
             self.fl.load()
 
-        sequences = self.fl.ds_dict['lbl_competence']
+        sequences = self.fl.ds_dict['dc_descriptifoffre']
 
         return sequences
 
@@ -151,6 +151,7 @@ class GetDataset:
         print('.... Start tokenizing sequences')
         inp = self.w2i.vectorize(seq, self.max_seq_length)
         print('done;')
+        print()
 
         print('.... Start masking')
         inp['labels'] = inp['input_ids'].detach().clone()
@@ -162,6 +163,7 @@ class GetDataset:
 
             inp['input_ids'][row, idx[row]] = 103
         print('done;')
+        print()
 
 
         dataset = JobDescriptionDataset(encodings = inp)

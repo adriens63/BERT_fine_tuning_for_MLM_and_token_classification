@@ -42,7 +42,6 @@ def train(config) -> None:
                         model = bert,
                         epochs = config['epochs'],
                         batch_size = config['batch_size'],
-                        loss_fn = None,
                         optimizer = optimizer,
                         lr_scheduler = None,
                         train_data_loader = train_data_loader,
