@@ -17,7 +17,7 @@ MAX_LENGTH = 512
 def standardize(s: str) -> str:
 
     d = {}
-    for e in string.punctuation:#TODO mettre que les virgules et différents points
+    for e in string.punctuation:
         d[e] = e + ' '
 
     translator = str.maketrans(d)
@@ -37,6 +37,7 @@ class JsonlLoader:
         self.path = path
         
     
+    
     def load(self) -> None:
         
         self.lines = []
@@ -45,13 +46,12 @@ class JsonlLoader:
             for line in f:
                 self.lines.append(line)
     
-            
+
 
     def mask_softskills(self):
-        #TODO : mettre un codage <$$€> par catégorie de soft skills quand elles seront définies
 
         masked_sequences = []
-        tokenizer = CamembertTokenizer.from_pretrained('camembert-base') # le tokenizer donne les mêmes token au même mot
+        tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
 
         for line in self.lines:
             labels = line['label']

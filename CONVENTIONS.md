@@ -5,8 +5,8 @@
 
 ## Lign breaks :
 A single line between each party within the same function, 
-two lines between functions within the same class, 
-four lines between classes or independent functions. 
+three lines between functions within the same class, 
+five lines between classes or independent functions. 
 
 
 

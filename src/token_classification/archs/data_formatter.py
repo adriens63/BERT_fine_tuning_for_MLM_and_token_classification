@@ -11,16 +11,19 @@ from src.mlm.archs.data_loader import FileLoader
 
 # ****************** constants ****************
 
-# TODO mettre ça dans une config
-PATH = './../statapp/data/'
-OFFRES = 'sample_offres.csv'
-CV = 'sample_cv.csv'
-YAML = 'n_per_cat.yaml'
-LBL_DESC_OFFRES = 'dc_descriptifoffre'
-LBL_ROME = 'dc_rome_id'
-VERSION = '0.0'
-N_SEQUENCES = 1500
-N_MEMBRES = 5
+def asigning_variables(config):
+
+    global PATH, OFFRES, CV, YAML, LBL_DESC_OFFRES, LBL_ROME, VERSION, N_SEQUENCES, N_MEMBRES
+    
+    PATH = config['path']
+    OFFRES = config['offres']
+    CV = config['cv']
+    YAML = config['yaml']
+    LBL_DESC_OFFRES = config['lbl_desc_offres']
+    LBL_ROME = config['lbl_rome']
+    VERSION = config['version']
+    N_SEQUENCES = config['n_sequences']
+    N_MEMBRES = config['n_membres']
 
 
 

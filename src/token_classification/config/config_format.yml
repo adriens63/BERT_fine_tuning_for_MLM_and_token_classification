@@ -1,0 +1,9 @@
+    path: './../statapp/data2/'
+    offres: 'sample_offres.csv'
+    cv: 'sample_cv.csv'
+    yaml: 'n_per_cat.yaml'
+    lbl_desc_offres: 'dc_descriptifoffre'
+    lbl_rome: 'dc_rome_id'
+    version: '0.0'
+    n_sequences: 1500
+    n_membres: 5

@@ -1,4 +1,5 @@
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import os
 import os.path as osp
@@ -35,7 +36,7 @@ class Trainer:
         self.model = model.to(device)
         self.epochs = epochs
         self.batch_size = batch_size
-        self.loss_fn = loss_fn
+        #self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.train_data_loader = train_data_loader
@@ -46,11 +47,12 @@ class Trainer:
         self.model_name = model_name
         self.weights_path = weights_path
         self.mod_dir = weights_path + model_name + '/'
-        #self.log_dir = weights_path + model_name + '/log_dir/'
+        self.log_dir = weights_path + model_name + '/log_dir/'
         self.ckp_dir = weights_path + model_name + '/ckp_dir/'
 
         self.metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
+        self.w = SummaryWriter(log_dir = self.log_dir )
 
 
     def train(self) -> None:
@@ -67,7 +69,10 @@ class Trainer:
                     self.loss["train"][-1],
                     self.loss["val"][-1],
                 )
-            )
+                )
+            self.w.add_scalar('loss/train', self.loss['train'][-1])
+            self.w.add_scalar('loss/val', self.loss['val'][-1])
+
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
 
@@ -75,15 +80,19 @@ class Trainer:
                     self._save_checkpoint(e)
 
 
+        self.w.flush()
+        self.w.close()
+
         print('done;')
         print()
+
 
     def _train_step(self) -> None:
         
         self.model.train()
 
         loop = tqdm(self.train_data_loader)
-        running_loss = []  
+        running_loss = 0  
 
         for i, batch in enumerate(loop):
             self.optimizer.zero_grad()
@@ -100,15 +109,14 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-            running_loss.append(loss.item())
+            running_loss += loss.item()
 
             loop.set_postfix(loss = loss.item())
             
             if i == self.train_steps:
                 break
         
-        epoch_loss = np.mean(running_loss) #TODO: on utilise np ou pas
-        self.loss["train"].append(epoch_loss)
+        self.loss["train"].append(running_loss / self.batch_size)
         
 
 
@@ -117,7 +125,7 @@ class Trainer:
         self.model.eval()
 
         loop = tqdm(self.val_data_loader)
-        running_loss = []
+        running_loss = 0
 
         for i, batch in enumerate(loop):
 
@@ -131,7 +139,7 @@ class Trainer:
 
             loss = out.loss
 
-            running_loss.append(loss.item())
+            running_loss += loss.item()
 
             logits = out.logits
             predictions = torch.argmax(logits, dim= -1)
@@ -139,10 +147,9 @@ class Trainer:
 
             if i == self.val_steps:
                     break
-
-        epoch_loss = np.mean(running_loss)
-        self.loss["val"].append(epoch_loss)
-        self.metric.compute()
+            
+        self.loss["val"].append(running_loss / self.batch_size)
+        self.metric.compute() #TODO ca va ou
 
 
     def _save_checkpoint(self, epoch: int) -> None:
