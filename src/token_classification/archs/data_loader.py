@@ -10,6 +10,7 @@ from src.mlm.tools.timer import timeit
 
 
 
+
 # ***************** loading *******************
 
 class FileLoader:
@@ -24,7 +25,6 @@ class FileLoader:
         with open(self.path) as f:
 
             csv_reader = csv.reader(f)
-            
             categories = next(csv_reader)
             
             self.ds_dict = {}
@@ -48,6 +48,7 @@ class Word2Int:
         #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
 
+
     @timeit
     def vectorize(self, sequences: List[str], max_seq_length: int, tensor_kind: str = 'pt') -> Dict[str, torch.Tensor]:
 
@@ -66,6 +67,7 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
         self.selection = selection
 
 
+
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
 
         out = {key : val[idx].clone().detach() for key, val in self.encodings.items()}
@@ -76,6 +78,7 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
         out['labels'] = lbl
 
         return out
+
 
 
     def __len__(self) -> int:
@@ -97,6 +100,7 @@ class GetDataset:
         self.shuffle = shuffle
 
 
+
     def get_sequences(self) -> List[str]:
         
         if not hasattr(self.fl, 'ds_dict'):
@@ -106,6 +110,7 @@ class GetDataset:
         sequences = self.fl.ds_dict['dc_descriptifoffre']
 
         return sequences
+
 
 
     def get_ds_ready(self) -> DataLoader:

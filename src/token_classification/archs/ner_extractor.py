@@ -10,8 +10,13 @@ from torch.utils.data import DataLoader
 from src.mlm.tools.timer import timeit
 
 
+
+
+
+
 # **************** ctes ******************
 MAX_LENGTH = 512
+
 
 
 
@@ -28,6 +33,7 @@ def standardize(s: str) -> str:
     translator = str.maketrans(d)
 
     return s.translate(translator)
+
 
 
 
@@ -59,12 +65,14 @@ class JsonlLoader:
         tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
 
         for line in self.lines:
+
             labels = line['label']
             sequence = line['data']
 
             idx = []
 
             for label in labels:
+
                 start, end, label_kind = label
                 marked_words = standardize(sequence[start:end])
                 print(f'marked word : {marked_words}')
@@ -79,6 +87,7 @@ class JsonlLoader:
                 start_marked = tok_beg_sequence.shape[-1] - 2
 
                 for i in range(tok_marked_words.shape[-1] - 2):
+
                     idx.append(start_marked + i) # les indices du mak sont là dedans
 
 
@@ -86,6 +95,7 @@ class JsonlLoader:
         
         return masked_sequences
     
+
 
     def get_sequences(self) -> List[str]:
 
@@ -96,13 +106,13 @@ class JsonlLoader:
 
 
 
-
 class Word2Int:
 
     def __init__(self) -> None:
 
         #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
+
 
     @timeit
     def vectorize(self, sequences: List[str], max_seq_length: int, tensor_kind: str = 'pt') -> Dict[str, torch.Tensor]:
@@ -122,6 +132,7 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
         self.selection = selection
 
 
+
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
 
         out = {key : val[idx].clone().detach() for key, val in self.encodings.items()}
@@ -134,10 +145,10 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
         return out
 
 
+
     def __len__(self) -> int:
 
         return self.encodings['input_ids'].shape[0]
-
 
 
 
@@ -152,6 +163,7 @@ class GetDataset:
         self.max_seq_length = max_seq_length
         self.batch_size = batch_size
         self.shuffle = shuffle
+
 
 
     def get_ds_ready(self) -> DataLoader:

@@ -3,7 +3,7 @@ epochs: 1
 train_path: ./src/../data/ref_comp.csv
 max_seq_length: 512
 frac_msk: 0.15
-batch_size: 2
+batch_size: 32
 shuffle: True
 learning_rate: 0.00001
 optimizer: AdamW
