@@ -9,7 +9,7 @@ from src.token_classification.archs.data_formatter import *
 
 
 # ********************* launch formating ***********************
-# cmd to launch : python -m src.token_classification.format
+# cmd to launch : python -m src.token_classification.format --config ./src/token_classification/config/config.yml
 
 if __name__ == '__main__':
     

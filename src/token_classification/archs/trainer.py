@@ -1,14 +1,15 @@
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score
 import os
 import os.path as osp
 from datasets import load_metric
 import json
 
 
-
-
+NON_LBL_TOKEN = -100 #TODO: put these tokens in file
+MAX_GRAD_NORM = 10
 
 
 # ********************* trainer *********************
@@ -53,6 +54,7 @@ class Trainer:
 
         self.metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
+        self.acc = {"train": [], "val": []}
         self.w = SummaryWriter(log_dir = self.log_dir )
 
 
@@ -96,7 +98,7 @@ class Trainer:
         self.model.train()
 
         loop = tqdm(self.train_data_loader)
-        running_loss = 0  
+        running_loss, running_accuracy = 0, 0  # loss and accuracy for the epoch
         n_batches = 0
 
         for i, batch in enumerate(loop):
@@ -104,26 +106,47 @@ class Trainer:
             n_batches += 1
             self.optimizer.zero_grad()
 
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            labels = batch['labels'].to(self.device)
-            
-            out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
-            
-            loss = out.loss
-            loss.backward()
-            self.optimizer.step()
+            ids = batch['input_ids'].to(self.device)
+            msk = batch['attention_mask'].to(self.device)
+            lbl = batch['labels'].to(self.device)
 
+            loss, y_pred_logits = self.model(input_ids = ids, attention_mask = msk, labels = lbl)
+            
+            # loss
             running_loss += loss.item()
 
-            loop.set_postfix(loss = loss.item())
+            # accuracy
+            #TODO : même pas besoin de flatten
+            flatten_lbl = lbl.view(-1) # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
             
+            flatten_logits = y_pred_logits.view(-1) # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
+            flatten_pred = torch.argmax(flatten_logits, axis = 1) # compute argmax along last axis to get shape [b, seq_lenght]
+
+            ## keeping only real lbls to perform comparison
+            msk_unactive_lbl = flatten_lbl != NON_LBL_TOKEN
+
+            flatten_real_lbl = torch.masked_select(flatten_lbl, mask = msk_unactive_lbl)
+            flatten_real_pred = torch.masked_select(flatten_pred, mask = msk_unactive_lbl)
+
+            batch_accuracy = (flatten_real_lbl == flatten_pred).sum() / self.batch_size
+            running_accuracy += batch_accuracy
+
+            # grad clipping
+            torch.nn.utils.clip_grad_norm(parameters = self.model.parameters(), max_norm = MAX_GRAD_NORM)
+
+            loss.backwards()
+            self.optimizer.step()
+
+            desc = {'loss': loss.item(), 'accuracy': batch_accuracy}
+            loop.set_postfix(desc)
+
             if i == self.train_steps:
 
                 break
         
-        self.loss["train"].append(running_loss / n_batches)
-        
+
+        self.loss['train'].append(running_loss / n_batches)
+        self.acc['train'].append(running_accuracy / n_batches)
 
 
     def _val_step(self) -> None:
