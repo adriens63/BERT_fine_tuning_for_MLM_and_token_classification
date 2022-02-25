@@ -1,8 +1,13 @@
 all2.jsonl
+all.jsonl
+sample.csv
 adri.jsonl
 draft/
 *.ipynb
 train_nb.ipynb
 *.pyc
-fine_tuned_bert.pt
 .~lock.*
+
+fine_tuned_bert_1.pt
+fine_tuned_bert.pt
+ckp_dir

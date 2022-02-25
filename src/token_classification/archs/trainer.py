@@ -110,7 +110,7 @@ class Trainer:
             msk = batch['attention_mask'].to(self.device)
             lbl = batch['labels'].to(self.device)
 
-            loss, y_pred_logits = self.model(input_ids = ids, attention_mask = msk, labels = lbl)
+            loss, out = self.model(input_ids = ids, attention_mask = msk, labels = lbl) # out  = y_pred_logits
             
             # loss
             running_loss += loss.item()
@@ -119,7 +119,7 @@ class Trainer:
             #TODO : même pas besoin de flatten
             flatten_lbl = lbl.view(-1) # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
             
-            flatten_logits = y_pred_logits.view(-1) # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
+            flatten_logits = out.view(-1) # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
             flatten_pred = torch.argmax(flatten_logits, axis = 1) # compute argmax along last axis to get shape [b, seq_lenght]
 
             ## keeping only real lbls to perform comparison
@@ -128,7 +128,7 @@ class Trainer:
             flatten_real_lbl = torch.masked_select(flatten_lbl, mask = msk_unactive_lbl)
             flatten_real_pred = torch.masked_select(flatten_pred, mask = msk_unactive_lbl)
 
-            batch_accuracy = (flatten_real_lbl == flatten_pred).sum() / self.batch_size
+            batch_accuracy = (flatten_real_lbl == flatten_real_pred).sum() / self.batch_size
             running_accuracy += batch_accuracy
 
             # grad clipping
@@ -154,21 +154,38 @@ class Trainer:
         self.model.eval()
 
         loop = tqdm(self.val_data_loader)
-        running_loss = 0
+        running_loss, running_accuracy = 0, 0
+        n_batches = 0
 
         for i, batch in enumerate(loop):
+            
+            n_batches += 1
 
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            labels = batch['labels'].to(self.device)
+            ids = batch['input_ids'].to(self.device)
+            msk = batch['attention_mask'].to(self.device)
+            lbl = batch['labels'].to(self.device)
 
             with torch.no_grad():
 
-                out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
-
-            loss = out.loss
+                loss, out = self.model(ids, attention_mask = msk, labels = lbl)
 
             running_loss += loss.item()
+
+            # accuracy
+            #TODO : même pas besoin de flatten
+            flatten_lbl = lbl.view(-1) # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
+            
+            flatten_logits = out.view(-1) # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
+            flatten_pred = torch.argmax(flatten_logits, axis = 1) # compute argmax along last axis to get shape [b, seq_lenght]
+
+            ## keeping only real lbls to perform comparison
+            msk_unactive_lbl = flatten_lbl != NON_LBL_TOKEN
+
+            flatten_real_lbl = torch.masked_select(flatten_lbl, mask = msk_unactive_lbl)
+            flatten_real_pred = torch.masked_select(flatten_pred, mask = msk_unactive_lbl)
+
+            batch_accuracy = (flatten_real_lbl == flatten_real_pred).sum() / self.batch_size
+            running_accuracy += batch_accuracy
 
             logits = out.logits
             predictions = torch.argmax(logits, dim= -1)
@@ -178,9 +195,8 @@ class Trainer:
 
                     break
             
-        self.loss["val"].append(running_loss / self.batch_size)
-        self.metric.compute() #TODO ca va ou
-
+        self.loss['val'].append(running_loss / n_batches)
+        self.acc['val'].append(running_accuracy / n_batches)
 
 
     def _save_checkpoint(self, epoch: int) -> None:

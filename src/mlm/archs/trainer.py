@@ -21,7 +21,7 @@ class Trainer:
             model,
             epochs,
             batch_size,
-            loss_fn,
+            #loss_fn,
             optimizer,
             lr_scheduler,
             train_data_loader,
@@ -53,6 +53,7 @@ class Trainer:
 
         self.metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
+        self.acc = {"train": [], "val": []}
         self.w = SummaryWriter(log_dir = self.log_dir )
 
 
@@ -73,14 +74,19 @@ class Trainer:
                     self.loss["val"][-1],
                 )
                 )
-            self.w.add_scalar('loss/train', self.loss['train'][-1])
-            self.w.add_scalar('loss/val', self.loss['val'][-1])
+            self.w.add_scalar('loss/train', self.loss['train'][-1], e)
+            self.w.add_scalar('loss/val', self.loss['val'][-1], e)
 
             if self.lr_scheduler is not None:
+
                 self.lr_scheduler.step()
 
             if self.checkpoint_frequency:
-                    self._save_checkpoint(e)
+
+                if not osp.exists(self.ckp_dir):
+                    os.makedirs(self.ckp_dir)
+
+                self._save_checkpoint(e)
 
 
         self.w.flush()
@@ -108,9 +114,8 @@ class Trainer:
             attention_mask = batch['attention_mask'].to(self.device)
             labels = batch['labels'].to(self.device)
             
-            out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
+            loss, out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
             
-            loss = out.loss
             loss.backward()
             self.optimizer.step()
 
@@ -132,8 +137,11 @@ class Trainer:
 
         loop = tqdm(self.val_data_loader)
         running_loss = 0
+        n_batches = 0
 
         for i, batch in enumerate(loop):
+
+            n_batches += 1
 
             input_ids = batch['input_ids'].to(self.device)
             attention_mask = batch['attention_mask'].to(self.device)
@@ -141,22 +149,20 @@ class Trainer:
 
             with torch.no_grad():
 
-                out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
-
-            loss = out.loss
+                loss, out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
 
             running_loss += loss.item()
 
-            logits = out.logits
-            predictions = torch.argmax(logits, dim= -1)
-            self.metric.add_batch(predictions=predictions, references=batch["labels"])
+            predictions = torch.argmax(out, dim = -1)
+            self.metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
 
             if i == self.val_steps:
 
                     break
             
-        self.loss["val"].append(running_loss / self.batch_size)
-        self.metric.compute() #TODO ca va ou
+        self.loss["val"].append(running_loss / n_batches)
+        acc = self.metric.compute()
+        self.acc["val"].append(acc)
 
 
 
@@ -198,7 +204,7 @@ class Trainer:
     def save_loss(self) -> None:
 
         """Save train/val loss as json file to `self.model_dir` directory"""
-        loss_path = osp.join(self.model_dir, "loss.json")
+        loss_path = osp.join(self.mod_dir, "loss.json")
         with open(loss_path, "w") as fp:
             
             json.dump(self.loss, fp)

@@ -4,9 +4,8 @@ import torch
 from transformers import CamembertTokenizer
 import numpy.typing as npt
 from typing import List, Dict
-from torch.utils.data import  DataLoader
 
-from tools.timer import timeit
+from src.tools.timer import timeit
 
 
 
@@ -17,9 +16,10 @@ from tools.timer import timeit
 
 class FileLoader:
     
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, n_elements: int = None) -> None:
         
         self.path = path
+        self.n_elements = n_elements
         
 
 
@@ -36,12 +36,16 @@ class FileLoader:
 
                 self.ds_dict[cat] = []
             
-            for s in tqdm.tqdm(csv_reader):
+            for i, s in tqdm.tqdm(enumerate(csv_reader)):
 
-                for i, cat in enumerate(categories):
+                for idx, cat in enumerate(categories):
 
-                    self.ds_dict[cat].append(s[i])
+                    self.ds_dict[cat].append(s[idx])
 
+                if i == self.n_elements:
+                    
+                    break
+                    
 
 
 
@@ -128,15 +132,13 @@ class MaskBlock:
 
 class GetDataset:
 
-    def __init__(self, path: str, max_seq_length: int, frac_msk: float, batch_size: int, shuffle: bool) -> None:
+    def __init__(self, path: str, max_seq_length: int, frac_msk: float, n_elements: int = None) -> None:
 
-        self.fl = FileLoader(path)
+        self.fl = FileLoader(path, n_elements)
         self.w2i = Word2Int()
         self.m = MaskBlock(frac_msk)
 
         self.max_seq_length = max_seq_length
-        self.batch_size = batch_size
-        self.shuffle = shuffle
 
 
 
@@ -152,7 +154,7 @@ class GetDataset:
 
 
 
-    def get_ds_ready(self) -> DataLoader:
+    def get_ds_ready(self) -> torch.utils.data.Dataset:
 
         seq = self.get_sequences()
 
@@ -176,6 +178,5 @@ class GetDataset:
 
 
         dataset = JobDescriptionDataset(encodings = inp)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size = self.batch_size, shuffle = self.shuffle)
 
-        return dataloader
+        return dataset

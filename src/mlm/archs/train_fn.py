@@ -30,13 +30,21 @@ def train(config) -> None:
     optimizer = optimizer_class(camembert.parameters(), lr = config['learning_rate'])
 
 
-    get_ds = dl.GetDataset(config['train_path'], 
+    get_full_ds = dl.GetDataset(config['train_path'], 
                             config['max_seq_length'], 
                             config['frac_msk'], 
-                            config['batch_size'], 
-                            config['shuffle'])
-    train_data_loader = get_ds.get_ds_ready()
-    val_data_loader = None
+                            config['n_elements'])
+    ds = get_full_ds.get_ds_ready()
+    
+    ds_size = len(ds)
+    val_size = int(config['val_frac'] * ds_size)
+    train_size = ds_size - val_size
+
+    train_ds, val_ds = torch.utils.data.random_split(ds, [train_size, val_size])
+
+    
+    train_dataloader = torch.utils.data.DataLoader(train_ds, batch_size = config['batch_size'], shuffle = config['shuffle'])
+    val_dataloader = torch.utils.data.DataLoader(val_ds, batch_size = config['batch_size'], shuffle = config['shuffle'])
 
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,9 +59,9 @@ def train(config) -> None:
                         batch_size = config['batch_size'],
                         optimizer = optimizer,
                         lr_scheduler = None,
-                        train_data_loader = train_data_loader,
+                        train_data_loader = train_dataloader,
                         train_steps = config['train_step'],
-                        val_data_loader = val_data_loader,
+                        val_data_loader = val_dataloader,
                         val_steps = config['val_step'],
                         checkpoint_frequency = config['checkpoint_frequency'],
                         model_name = config['model_name'],
@@ -62,5 +70,6 @@ def train(config) -> None:
     
     trainer.train()
     trainer.save_model()
+    trainer.save_loss()
 
     print('CamemBERT saved to directory: ', config['weights_path'])

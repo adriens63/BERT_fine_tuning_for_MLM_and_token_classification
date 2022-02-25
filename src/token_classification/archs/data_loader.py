@@ -4,7 +4,7 @@ from transformers import CamembertTokenizer
 from typing import List, Dict
 from torch.utils.data import  DataLoader
 
-from src.mlm.tools.timer import timeit
+from src.tools.timer import timeit
 
 
 

@@ -14,8 +14,8 @@ def timeit(method):
         ts = time()
         result = method(*args, **kw)
         te = time()
-        print('%r (%r, %r) %2.2f sec' % \
-            (method.__name__, args, kw, te-ts))
+        print('%r %r %2.2f sec' % \
+            (method.__name__, kw, te-ts)) # (method.__name__, args, kw, te-ts))
 
         return result
 
