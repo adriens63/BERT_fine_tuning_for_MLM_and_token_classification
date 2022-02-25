@@ -29,6 +29,8 @@ def train(config) -> None:
     optimizer_class = c.get_optimizer_class(config['optimizer'])
     optimizer = optimizer_class(camembert.parameters(), lr = config['learning_rate'])
 
+    loss_fn_class = c.get_loss_fn_class(config['loss_fn'])
+    loss_fn = loss_fn_class()
 
     get_full_ds = dl.GetDataset(config['train_path'], 
                             config['max_seq_length'], 
@@ -48,7 +50,7 @@ def train(config) -> None:
 
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print('.... Device is :', device)
+    print('.... Device is: ', device)
     print('done;')
     print()
 
@@ -57,6 +59,7 @@ def train(config) -> None:
                         model = camembert,
                         epochs = config['epochs'],
                         batch_size = config['batch_size'],
+                        loss_fn = loss_fn,
                         optimizer = optimizer,
                         lr_scheduler = None,
                         train_data_loader = train_dataloader,

@@ -9,6 +9,7 @@ batch_size: 2
 shuffle: True
 learning_rate: 0.00001
 optimizer: AdamW
+loss_fn: CrossEntropyLoss
 train_step: 1024
 val_step: 1024
 model_name: fine_tuned_bert_1

@@ -21,7 +21,7 @@ class Trainer:
             model,
             epochs,
             batch_size,
-            #loss_fn,
+            loss_fn,
             optimizer,
             lr_scheduler,
             train_data_loader,
@@ -37,7 +37,7 @@ class Trainer:
         self.model = model.to(device)
         self.epochs = epochs
         self.batch_size = batch_size
-        #self.loss_fn = loss_fn
+        self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.train_data_loader = train_data_loader
@@ -52,13 +52,26 @@ class Trainer:
         self.ckp_dir = weights_path + model_name + '/ckp_dir/'
 
         self.metric = load_metric('accuracy')
+        self.tmp_metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
         self.acc = {"train": [], "val": []}
-        self.w = SummaryWriter(log_dir = self.log_dir )
+        self.w = SummaryWriter(log_dir = self.log_dir)
 
 
 
     def train(self) -> None:
+
+        print('.... Start writing graph')
+
+        self.model.eval()
+
+        dummy_input = torch.zeros(size = [2, 1], dtype = torch.long).to(self.device)
+        list_inp = [dummy_input, dummy_input, dummy_input]
+
+        self.w.add_graph(self.model, input_to_model = list_inp, verbose = False)
+        print('done;')
+        print()
+
 
         print('.... Start training')
 
@@ -76,6 +89,15 @@ class Trainer:
                 )
             self.w.add_scalar('loss/train', self.loss['train'][-1], e)
             self.w.add_scalar('loss/val', self.loss['val'][-1], e)
+
+            self.w.add_scalar('acc/train', self.acc['train'][-1], e)
+            self.w.add_scalar('acc/val', self.acc['val'][-1], e)
+
+            self.w.add_scalars('losses', {'train_loss': self.loss['train'][-1],
+                                            'val_loss': self.loss['val'][-1]}, e)
+            
+            self.w.add_scalars('accs', {'train_acc': self.acc['train'][-1],
+                                            'val_acc': self.acc['val'][-1]}, e)
 
             if self.lr_scheduler is not None:
 
@@ -120,15 +142,19 @@ class Trainer:
             self.optimizer.step()
 
             running_loss += loss.item()
+            predictions = torch.argmax(out, dim = -1)
+            self.metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
+            self.tmp_metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
 
-            loop.set_postfix(loss = loss.item())
+            loop.set_postfix(loss = loss.item(), acc = self.tmp_metric.compute()['accuracy'])
             
             if i == self.train_steps:
 
                 break
         
-        self.loss["train"].append(running_loss / n_batches)
-        
+        self.loss['train'].append(running_loss / n_batches)
+        acc = self.metric.compute()['accuracy']
+        self.acc['train'].append(acc)
 
 
     def _val_step(self) -> None:
@@ -155,13 +181,16 @@ class Trainer:
 
             predictions = torch.argmax(out, dim = -1)
             self.metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
+            self.tmp_metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
+
+            loop.set_postfix(loss = loss.item(), acc = self.tmp_metric.compute()['accuracy'])
 
             if i == self.val_steps:
 
                     break
             
         self.loss["val"].append(running_loss / n_batches)
-        acc = self.metric.compute()
+        acc = self.metric.compute()['accuracy']
         self.acc["val"].append(acc)
 
 

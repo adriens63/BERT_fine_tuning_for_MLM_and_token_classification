@@ -164,7 +164,7 @@ class GetDataset:
         print()
 
 
-        print('.... Start masking')
+        print('.... Start masking and labeling')
         inp['labels'] = inp['input_ids'].detach().clone()
 
         msk = self.m.get_msk(inp['input_ids'])
