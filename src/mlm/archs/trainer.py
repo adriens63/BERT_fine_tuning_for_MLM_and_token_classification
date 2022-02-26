@@ -8,6 +8,7 @@ from datasets import load_metric
 import json
 
 from src.tools.model_summary import summary_parameters
+from src.tools.timer import timeit
 
 
 
@@ -64,21 +65,8 @@ class Trainer:
 
     def train(self) -> None:
 
-        print('Summary: ')
-        summary_parameters(self.model) # or summary
-        print('done;')
-        print()
-
-        print('.... Start writing graph')
-
-        self.model.eval()
-
-        dummy_input = torch.zeros(size = [2, 1], dtype = torch.long).to(self.device)
-        list_inp = [dummy_input, dummy_input, dummy_input]
-
-        self.w.add_graph(self.model, input_to_model = list_inp, verbose = False)
-        print('done;')
-        print()
+        self._summary()
+        self._write_graph()
 
 
         print('.... Start training')
@@ -87,29 +75,8 @@ class Trainer:
 
             self._train_step()
             self._val_step()
-            print(
-                "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
-                    e + 1,
-                    self.epochs,
-                    self.loss["train"][-1],
-                    self.loss["val"][-1],
-                )
-                )
-            self.w.add_scalar('loss/train', self.loss['train'][-1], e)
-            self.w.add_scalar('loss/val', self.loss['val'][-1], e)
-
-            self.w.add_scalar('acc/train', self.acc['train'][-1], e)
-            self.w.add_scalar('acc/val', self.acc['val'][-1], e)
-
-            self.w.add_scalars('losses', {'train_loss': self.loss['train'][-1],
-                                            'val_loss': self.loss['val'][-1]}, e)
-            
-            self.w.add_scalars('accs', {'train_acc': self.acc['train'][-1],
-                                            'val_acc': self.acc['val'][-1]}, e)
-
-            for name, param in self.model.named_parameters():
-
-                self.w.add_histogram(name, param, e)
+            self._epoch_summary()
+            self._write_metrics(e)
 
 
             if self.lr_scheduler is not None:
@@ -127,7 +94,7 @@ class Trainer:
         self.w.flush()
         self.w.close()
 
-        print('done;')
+        print('training done;')
         print()
 
 
@@ -170,6 +137,7 @@ class Trainer:
         self.acc['train'].append(acc)
 
 
+
     def _val_step(self) -> None:
 
         self.model.eval()
@@ -208,6 +176,67 @@ class Trainer:
 
 
 
+    @timeit
+    def _write_metrics(self, epoch: int) -> None:
+
+        print('.... Saving metrics to tensorboard')
+        self.w.add_scalar('loss/train', self.loss['train'][-1], epoch)
+        self.w.add_scalar('loss/val', self.loss['val'][-1], epoch)
+
+        self.w.add_scalar('acc/train', self.acc['train'][-1], epoch)
+        self.w.add_scalar('acc/val', self.acc['val'][-1], epoch)
+
+        self.w.add_scalars('losses', {'train_loss': self.loss['train'][-1],
+                                        'val_loss': self.loss['val'][-1]}, epoch)
+        
+        self.w.add_scalars('accs', {'train_acc': self.acc['train'][-1],
+                                        'val_acc': self.acc['val'][-1]}, epoch)
+
+        for name, param in self.model.named_parameters():
+
+            self.w.add_histogram(name, param, epoch)
+        print('done;')
+        print()
+
+
+
+    @timeit
+    def _write_graph(self) -> None:
+
+        print('.... Start writing graph')
+        self.model.eval()
+
+        dummy_input = torch.zeros(size = [2, 1], dtype = torch.long).to(self.device)
+        list_inp = [dummy_input, dummy_input, dummy_input]
+
+        self.w.add_graph(self.model, input_to_model = list_inp, verbose = False)
+        print('done;')
+        print()
+
+
+
+    @timeit
+    def _summary(self) -> None:
+
+        print('Summary: ')
+        summary_parameters(self.model) # or summary
+        print('done;')
+        print()
+
+
+
+    def _epoch_summary(self, epoch: int) -> None:
+
+        print(
+            "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
+                epoch + 1,
+                self.epochs,
+                self.loss["train"][-1],
+                self.loss["val"][-1]))
+
+
+
+    @timeit
     def _save_checkpoint(self, epoch: int) -> None:
         """Save model checkpoint to `self.model_dir` directory"""
 
@@ -227,6 +256,7 @@ class Trainer:
 
 
 
+    @timeit
     def save_model(self) -> None:
 
         print('.... Saving model')
@@ -243,6 +273,7 @@ class Trainer:
 
 
     
+    @timeit
     def save_loss(self) -> None:
 
         """Save train/val loss as json file to `self.model_dir` directory"""
