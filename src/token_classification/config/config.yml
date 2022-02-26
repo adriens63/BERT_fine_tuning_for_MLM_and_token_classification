@@ -1,6 +1,6 @@
 epochs: 3
 
-train_path: ./src/../data/sample.csv
+train_path: ./src/../data/martin.jsonl
 val_frac: .2
 n_elements: 32
 max_seq_length: 512

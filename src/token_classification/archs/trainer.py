@@ -7,14 +7,26 @@ import os.path as osp
 from datasets import load_metric
 import json
 
+from src.tools.base_trainer import BaseTrainer
+
+
+
+
+
+
+# ******************** constants *****************
 
 NON_LBL_TOKEN = -100 #TODO: put these tokens in file
 MAX_GRAD_NORM = 10
 
 
+
+
+
+
 # ********************* trainer *********************
 
-class Trainer:
+class Trainer(BaseTrainer):
 
     def __init__(
             self,
@@ -56,40 +68,6 @@ class Trainer:
         self.loss = {"train": [], "val": []}
         self.acc = {"train": [], "val": []}
         self.w = SummaryWriter(log_dir = self.log_dir )
-
-
-
-    def train(self) -> None:
-
-        print('.... Start training')
-
-        for e in range(self.epochs):
-
-            self._train_step()
-            self._val_step()
-            print(
-                "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
-                    e + 1,
-                    self.epochs,
-                    self.loss["train"][-1],
-                    self.loss["val"][-1],
-                )
-                )
-            self.w.add_scalar('loss/train', self.loss['train'][-1])
-            self.w.add_scalar('loss/val', self.loss['val'][-1])
-
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
-
-            if self.checkpoint_frequency:
-                    self._save_checkpoint(e)
-
-
-        self.w.flush()
-        self.w.close()
-
-        print('done;')
-        print()
 
 
 
@@ -149,6 +127,7 @@ class Trainer:
         self.acc['train'].append(running_accuracy / n_batches)
 
 
+
     def _val_step(self) -> None:
 
         self.model.eval()
@@ -197,47 +176,3 @@ class Trainer:
             
         self.loss['val'].append(running_loss / n_batches)
         self.acc['val'].append(running_accuracy / n_batches)
-
-
-    def _save_checkpoint(self, epoch: int) -> None:
-        """Save model checkpoint to `self.model_dir` directory"""
-
-        epoch_num = epoch + 1
-        if epoch_num % self.checkpoint_frequency == 0:
-            
-            print('.... Saving ckp')
-            model_path = "checkpoint_{}.pt".format(str(epoch_num).zfill(3))
-            model_path = osp.join(self.ckp_dir, model_path)
-            torch.save({
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'epoch': epoch
-                    }, model_path)
-            print('done;')
-            print()
-
-
-
-    def save_model(self) -> None:
-
-        print('.... Saving model')
-        model_path = osp.join(self.weights_path, self.model_name)
-        
-        if not osp.exists(model_path):
-            
-            os.makedirs(model_path)
-
-        torch.save(self.model, model_path + '/' + self.model_name + '.pt')
-
-        print('done;')
-        print()
-
-
-    
-    def save_loss(self) -> None:
-
-        """Save train/val loss as json file to `self.model_dir` directory"""
-        loss_path = osp.join(self.model_dir, "loss.json")
-        with open(loss_path, "w") as fp:
-            
-            json.dump(self.loss, fp)

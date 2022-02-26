@@ -9,6 +9,7 @@ import json
 
 from src.tools.model_summary import summary_parameters
 from src.tools.timer import timeit
+from src.tools.base_trainer import BaseTrainer
 
 
 
@@ -17,7 +18,7 @@ from src.tools.timer import timeit
 
 # ********************* trainer *********************
 
-class Trainer:
+class Trainer(BaseTrainer):
 
     def __init__(
             self,
@@ -65,38 +66,11 @@ class Trainer:
 
     def train(self) -> None:
 
-        self._summary()
-        self._write_graph()
-
-
-        print('.... Start training')
-
-        for e in range(self.epochs):
-
-            self._train_step()
-            self._val_step()
-            self._epoch_summary()
-            self._write_metrics(e)
-
-
-            if self.lr_scheduler is not None:
-
-                self.lr_scheduler.step()
-
-            if self.checkpoint_frequency:
-
-                if not osp.exists(self.ckp_dir):
-                    os.makedirs(self.ckp_dir)
-
-                self._save_checkpoint(e)
-
-
-        self.w.flush()
-        self.w.close()
-
+        print('.... MLM CamemBERT training:')
+        super().train()
         print('training done;')
         print()
-
+        
 
 
     def _train_step(self) -> None:
@@ -174,110 +148,3 @@ class Trainer:
         acc = self.metric.compute()['accuracy']
         self.acc["val"].append(acc)
 
-
-
-    @timeit
-    def _write_metrics(self, epoch: int) -> None:
-
-        print('.... Saving metrics to tensorboard')
-        self.w.add_scalar('loss/train', self.loss['train'][-1], epoch)
-        self.w.add_scalar('loss/val', self.loss['val'][-1], epoch)
-
-        self.w.add_scalar('acc/train', self.acc['train'][-1], epoch)
-        self.w.add_scalar('acc/val', self.acc['val'][-1], epoch)
-
-        self.w.add_scalars('losses', {'train_loss': self.loss['train'][-1],
-                                        'val_loss': self.loss['val'][-1]}, epoch)
-        
-        self.w.add_scalars('accs', {'train_acc': self.acc['train'][-1],
-                                        'val_acc': self.acc['val'][-1]}, epoch)
-
-        for name, param in self.model.named_parameters():
-
-            self.w.add_histogram(name, param, epoch)
-        print('done;')
-        print()
-
-
-
-    @timeit
-    def _write_graph(self) -> None:
-
-        print('.... Start writing graph')
-        self.model.eval()
-
-        dummy_input = torch.zeros(size = [2, 1], dtype = torch.long).to(self.device)
-        list_inp = [dummy_input, dummy_input, dummy_input]
-
-        self.w.add_graph(self.model, input_to_model = list_inp, verbose = False)
-        print('done;')
-        print()
-
-
-
-    @timeit
-    def _summary(self) -> None:
-
-        print('Summary: ')
-        summary_parameters(self.model) # or summary
-        print('done;')
-        print()
-
-
-
-    def _epoch_summary(self, epoch: int) -> None:
-
-        print(
-            "Epoch: {}/{}, Train Loss={:.5f}, Val Loss={:.5f}".format(
-                epoch + 1,
-                self.epochs,
-                self.loss["train"][-1],
-                self.loss["val"][-1]))
-
-
-
-    @timeit
-    def _save_checkpoint(self, epoch: int) -> None:
-        """Save model checkpoint to `self.model_dir` directory"""
-
-        epoch_num = epoch + 1
-        if epoch_num % self.checkpoint_frequency == 0:
-            
-            print('.... Saving ckp')
-            model_path = "checkpoint_{}.pt".format(str(epoch_num).zfill(3))
-            model_path = osp.join(self.ckp_dir, model_path)
-            torch.save({
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'epoch': epoch
-                    }, model_path)
-            print('done;')
-            print()
-
-
-
-    @timeit
-    def save_model(self) -> None:
-
-        print('.... Saving model')
-        model_path = osp.join(self.weights_path, self.model_name)
-        
-        if not osp.exists(model_path):
-            
-            os.makedirs(model_path)
-
-        torch.save(self.model, model_path + '/' + self.model_name + '.pt')
-
-        print('done;')
-        print()
-
-
-    
-    @timeit
-    def save_loss(self) -> None:
-
-        """Save train/val loss as json file to `self.model_dir` directory"""
-        loss_path = osp.join(self.mod_dir, "loss.json")
-        with open(loss_path, "w") as fp:
-            
-            json.dump(self.loss, fp)

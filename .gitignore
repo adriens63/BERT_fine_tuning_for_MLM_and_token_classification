@@ -2,6 +2,7 @@ all2.jsonl
 all.jsonl
 sample.csv
 adri.jsonl
+martin.jsonl
 draft/
 *.ipynb
 train_nb.ipynb

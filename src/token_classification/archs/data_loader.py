@@ -1,5 +1,6 @@
 import tqdm
 import torch
+import csv
 from transformers import CamembertTokenizer
 from typing import List, Dict
 from torch.utils.data import  DataLoader
@@ -123,6 +124,5 @@ class GetDataset:
         print()
 
         dataset = JobDescriptionDataset(encodings = inp)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size = self.batch_size, shuffle = self.shuffle)
 
-        return dataloader
+        return dataset
