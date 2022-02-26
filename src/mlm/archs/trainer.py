@@ -1,10 +1,13 @@
 import torch
+from torchsummary import summary
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import os
 import os.path as osp
 from datasets import load_metric
 import json
+
+from src.tools.model_summary import summary_parameters
 
 
 
@@ -61,6 +64,11 @@ class Trainer:
 
     def train(self) -> None:
 
+        print('Summary: ')
+        summary_parameters(self.model) # or summary
+        print('done;')
+        print()
+
         print('.... Start writing graph')
 
         self.model.eval()
@@ -98,6 +106,11 @@ class Trainer:
             
             self.w.add_scalars('accs', {'train_acc': self.acc['train'][-1],
                                             'val_acc': self.acc['val'][-1]}, e)
+
+            for name, param in self.model.named_parameters():
+
+                self.w.add_histogram(name, param, e)
+
 
             if self.lr_scheduler is not None:
 

@@ -11,3 +11,4 @@ train_nb.ipynb
 fine_tuned_bert_1.pt
 fine_tuned_bert.pt
 ckp_dir
+log_dir
