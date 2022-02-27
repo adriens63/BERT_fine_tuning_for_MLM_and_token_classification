@@ -1,0 +1,18 @@
+epochs: 3
+
+train_path: ./src/../data/martin.jsonl
+val_frac: .2
+n_elements: 32
+max_seq_length: 512
+frac_msk: 0.15
+batch_size: 2
+shuffle: True
+learning_rate: 0.00001
+patience: 4
+optimizer: AdamW
+loss_fn: CrossEntropyLoss
+train_step: 1024
+val_step: 1024
+model_name: fine_tuned_bert_1
+weights_path: ./src/mlm/weights/
+checkpoint_frequency: 2
