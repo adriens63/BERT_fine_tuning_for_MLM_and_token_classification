@@ -1,6 +1,7 @@
 import torch
 from torchsummary import summary
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 from tqdm import tqdm
 import os
 import os.path as osp
@@ -29,6 +30,7 @@ class Trainer(BaseTrainer):
             loss_fn,
             optimizer,
             lr_scheduler,
+            patience,
             train_data_loader,
             train_steps,
             val_data_loader,
@@ -45,6 +47,7 @@ class Trainer(BaseTrainer):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+        self.patience = patience
         self.train_data_loader = train_data_loader
         self.train_steps = train_steps
         self.val_data_loader = val_data_loader
@@ -61,6 +64,8 @@ class Trainer(BaseTrainer):
         self.loss = {"train": [], "val": []}
         self.acc = {"train": [], "val": []}
         self.w = SummaryWriter(log_dir = self.log_dir)
+        self.last_loss = np.inf
+        self.trigger_times = 0
 
 
 

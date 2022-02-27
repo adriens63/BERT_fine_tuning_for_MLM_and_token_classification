@@ -1,6 +1,7 @@
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import numpy as np
 from sklearn.metrics import accuracy_score
 import os
 import os.path as osp
@@ -37,6 +38,7 @@ class Trainer(BaseTrainer):
             loss_fn,
             optimizer,
             lr_scheduler,
+            patience,
             train_data_loader,
             train_steps,
             val_data_loader,
@@ -50,9 +52,10 @@ class Trainer(BaseTrainer):
         self.model = model.to(device)
         self.epochs = epochs
         self.batch_size = batch_size
-        #self.loss_fn = loss_fn
+        self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+        self.patience = patience
         self.train_data_loader = train_data_loader
         self.train_steps = train_steps
         self.val_data_loader = val_data_loader
@@ -67,7 +70,9 @@ class Trainer(BaseTrainer):
         self.metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
         self.acc = {"train": [], "val": []}
-        self.w = SummaryWriter(log_dir = self.log_dir )
+        self.w = SummaryWriter(log_dir = self.log_dir)
+        self.last_loss = np.inf
+        self.trigger_times = 0
 
 
 
@@ -94,11 +99,10 @@ class Trainer(BaseTrainer):
             running_loss += loss.item()
 
             # accuracy
-            #TODO : même pas besoin de flatten
             flatten_lbl = lbl.view(-1) # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
             
             flatten_logits = out.view(-1) # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
-            flatten_pred = torch.argmax(flatten_logits, axis = 1) # compute argmax along last axis to get shape [b, seq_lenght]
+            flatten_pred = torch.argmax(flatten_logits, axis = 1) # compute argmax along last axis to get shape [b * seq_lenght]
 
             ## keeping only real lbls to perform comparison
             msk_unactive_lbl = flatten_lbl != NON_LBL_TOKEN
@@ -151,7 +155,6 @@ class Trainer(BaseTrainer):
             running_loss += loss.item()
 
             # accuracy
-            #TODO : même pas besoin de flatten
             flatten_lbl = lbl.view(-1) # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
             
             flatten_logits = out.view(-1) # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together

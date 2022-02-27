@@ -1,0 +1,17 @@
+batch_size: 2
+checkpoint_frequency: 2
+epochs: 1
+frac_msk: 0.15
+learning_rate: 1.0e-05
+loss_fn: CrossEntropyLoss
+max_seq_length: 512
+model_name: fine_tuned_bert_1
+n_elements: 32
+optimizer: AdamW
+patience: 4
+shuffle: true
+train_path: ./src/../data/sample.csv
+train_step: 1024
+val_frac: 0.1
+val_step: 1024
+weights_path: ./src/mlm/weights/

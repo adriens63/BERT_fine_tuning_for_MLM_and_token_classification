@@ -1,9 +1,11 @@
 import torch
 import gc
+import os.path as osp
 
 import src.mlm.archs.trainer as t
 import src.mlm.archs.data_loader as dl
 import src.mlm.models.camembert as c
+from src.tools.helper import log_config
 
 
 
@@ -11,6 +13,7 @@ import src.mlm.models.camembert as c
 
 
 # *************** emptying cache **********
+
 gc.collect()
 torch.cuda.empty_cache()
 
@@ -62,6 +65,7 @@ def train(config) -> None:
                         loss_fn = loss_fn,
                         optimizer = optimizer,
                         lr_scheduler = None,
+                        patience = config['patience'],
                         train_data_loader = train_dataloader,
                         train_steps = config['train_step'],
                         val_data_loader = val_dataloader,
@@ -73,6 +77,9 @@ def train(config) -> None:
     
     trainer.train()
     trainer.save_model()
+    trainer.classification_report()
     trainer.save_loss()
+
+    log_config(config, osp.join(config['weights_path'], config['model_name']))
 
     print('CamemBERT saved to directory: ', config['weights_path'])

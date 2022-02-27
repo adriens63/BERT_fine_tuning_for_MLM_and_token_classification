@@ -1,6 +1,9 @@
 import torch
 from torchsummary import summary
 from torch.utils.tensorboard import SummaryWriter
+from sklearn.metrics import classification_report
+import pandas as pd
+import numpy as np
 from tqdm import tqdm
 import os
 import os.path as osp
@@ -30,6 +33,7 @@ class BaseTrainer(ABC):
             loss_fn,
             optimizer,
             lr_scheduler,
+            patience,
             train_data_loader,
             train_steps,
             val_data_loader,
@@ -46,6 +50,7 @@ class BaseTrainer(ABC):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+        self.patience = patience
         self.train_data_loader = train_data_loader
         self.train_steps = train_steps
         self.val_data_loader = val_data_loader
@@ -62,6 +67,8 @@ class BaseTrainer(ABC):
         self.loss = {"train": [], "val": []}
         self.acc = {"train": [], "val": []}
         self.w = SummaryWriter(log_dir = self.log_dir)
+        self.last_loss = np.inf
+        self.trigger_times = 0
 
 
 
@@ -79,6 +86,9 @@ class BaseTrainer(ABC):
             self._val_step()
             self._epoch_summary(e)
             self._write_metrics(e)
+            
+            if self._early_stopping():
+                break
 
 
             if self.lr_scheduler is not None:
@@ -194,6 +204,58 @@ class BaseTrainer(ABC):
 
 
     @timeit
+    def _early_stopping(self):
+
+        self.current_loss = self.loss["val"][-1]
+        print(f'Current loss: {self.current_loss}')
+
+        if self.current_loss > self.last_loss:
+            self.trigger_times += 1
+            print(f'Trigger times: {self.trigger_times}')
+
+            if self.trigger_times >= self.patience:
+                print('Early stopping\nStart to test process.')
+                
+                return True
+
+        else:
+            self.trigger_times = 0
+
+        self.last_loss = self.current_loss
+
+        return False
+
+
+
+    @timeit
+    def classification_report(self) -> None:
+
+        self.model.eval()
+
+        batch = next(iter(self.val_data_loader))
+
+        ids = batch['input_ids'].to(self.device)
+        msk = batch['attention_mask'].to(self.device)
+        lbl = batch['labels'].to(self.device)
+
+        with torch.no_grad():
+
+            _, out = self.model(ids, attention_mask = msk, labels = lbl)
+
+        out = torch.argmax(out, axis = -1)
+
+        flatten_lbl = lbl.view(-1) 
+        flatten_pred = out.view(-1) 
+
+        print(flatten_pred.shape)
+        print(flatten_lbl.shape)
+
+        print(classification_report(flatten_lbl.cpu(), flatten_pred.cpu()))
+        print(pd.crosstab(flatten_lbl.cpu(), flatten_pred.cpu()))
+
+
+
+    @timeit
     def save_model(self) -> None:
 
         print('.... Saving model')
@@ -218,3 +280,4 @@ class BaseTrainer(ABC):
         with open(loss_path, "w") as fp:
             
             json.dump(self.loss, fp)
+            json.dump(self.acc, fp)
