@@ -1,6 +1,7 @@
 import torch
 from torchsummary import summary
 from torch.utils.tensorboard import SummaryWriter
+import torch.distributed as dist
 import numpy as np
 from tqdm import tqdm
 import os
@@ -41,7 +42,7 @@ class Trainer(BaseTrainer):
             ) -> None:
         
         self.device = device
-        self.model = model.to(device)
+        self.model = torch.nn.DataParallel(model, device_ids = [i for i in range(torch.cuda.device_count())]).to(device)
         self.epochs = epochs
         self.batch_size = batch_size
         self.loss_fn = loss_fn
@@ -95,17 +96,17 @@ class Trainer(BaseTrainer):
             attention_mask = batch['attention_mask'].to(self.device)
             labels = batch['labels'].to(self.device)
             
-            loss, out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
-            
-            loss.backward()
+            loss, out = self.model(input_ids, attention_mask = attention_mask, labels = labels).to_tuple()
+
+            loss.sum().backward()
             self.optimizer.step()
 
-            running_loss += loss.item()
+            running_loss += loss.sum().item()
             predictions = torch.argmax(out, dim = -1)
             self.metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
             self.tmp_metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
 
-            loop.set_postfix(loss = loss.item(), acc = self.tmp_metric.compute()['accuracy'])
+            loop.set_postfix(loss = loss.sum().item(), acc = self.tmp_metric.compute()['accuracy'])
             
             if i == self.train_steps:
 
@@ -135,15 +136,15 @@ class Trainer(BaseTrainer):
 
             with torch.no_grad():
 
-                loss, out = self.model(input_ids, attention_mask = attention_mask, labels = labels)
+                loss, out = self.model(input_ids, attention_mask = attention_mask, labels = labels).to_tuple()
 
-            running_loss += loss.item()
+            running_loss += loss.sum().item()
 
             predictions = torch.argmax(out, dim = -1)
             self.metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
             self.tmp_metric.add_batch(predictions = predictions.view(-1), references = batch["labels"].view(-1))
 
-            loop.set_postfix(loss = loss.item(), acc = self.tmp_metric.compute()['accuracy'])
+            loop.set_postfix(loss = loss.sum().item(), acc = self.tmp_metric.compute()['accuracy'])
 
             if i == self.val_steps:
 

@@ -44,7 +44,7 @@ class BaseTrainer(ABC):
             ) -> None:
         
         self.device = device
-        self.model = model.to(device)
+        self.model = torch.nn.parallel.DistributedDataParallel(model.to(device))
         self.epochs = epochs
         self.batch_size = batch_size
         self.loss_fn = loss_fn
@@ -75,7 +75,7 @@ class BaseTrainer(ABC):
     def train(self) -> None:
 
         self._summary()
-        self._write_graph()
+        #self._write_graph()
 
 
         print('.... Start training')
@@ -240,7 +240,7 @@ class BaseTrainer(ABC):
 
         with torch.no_grad():
 
-            _, out = self.model(ids, attention_mask = msk, labels = lbl)
+            _, out = self.model(ids, attention_mask = msk, labels = lbl).to_tuple()
 
         out = torch.argmax(out, axis = -1)
 
