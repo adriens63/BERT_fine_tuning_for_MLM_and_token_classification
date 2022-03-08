@@ -1,18 +1,19 @@
-epochs: 400
+epochs: 2
 
-train_path: ./src/../data/sample_offres.csv
+train_path: ./data/sample_offres.csv
 val_frac: .1
-n_elements: -1
+n_elements: 1024
 max_seq_length: 512
 frac_msk: 0.15
-batch_size: 16
+batch_size: 2
 shuffle: True
 learning_rate: 0.00001
-patience: 4
+patience: 2
 optimizer: AdamW
 loss_fn: CrossEntropyLoss
-train_step: -1
-val_step: -1
-model_name: pre_trained_bert_1
+train_step: 16
+val_step: 8
+model_name: pre_trained_bert_1_06
 weights_path: ./src/mlm/weights/
 checkpoint_frequency: 2
+metric_frequency: 0.03

@@ -16,3 +16,4 @@ val_step: 1024
 model_name: fine_tuned_bert_1
 weights_path: ./src/mlm/weights/
 checkpoint_frequency: 2
+metric_frequency: 0.02

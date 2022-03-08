@@ -5,6 +5,7 @@ adri.jsonl
 martin.jsonl
 data/
 draft/
+weights/
 *.ipynb
 train_nb.ipynb
 *.pyc
