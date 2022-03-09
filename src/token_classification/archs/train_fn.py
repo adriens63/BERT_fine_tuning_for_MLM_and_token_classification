@@ -66,11 +66,13 @@ def train(config) -> None:
                         loss_fn = loss_fn,
                         optimizer = optimizer,
                         lr_scheduler = None,
+                        patience = config['patience'],
                         train_data_loader = train_dataloader,
                         train_steps = config['train_step'],
                         val_data_loader = val_dataloader,
                         val_steps = config['val_step'],
                         checkpoint_frequency = config['checkpoint_frequency'],
+                        metric_frequency = config['metric_frequency'],
                         model_name = config['model_name'],
                         weights_path = config['weights_path'],
                         )

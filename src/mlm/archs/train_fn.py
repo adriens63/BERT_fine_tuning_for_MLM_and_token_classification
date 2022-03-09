@@ -71,6 +71,7 @@ def train(config) -> None:
                         val_data_loader = val_dataloader,
                         val_steps = config['val_step'],
                         checkpoint_frequency = config['checkpoint_frequency'],
+                        metric_frequency = config['metric_frequency'],
                         model_name = config['model_name'],
                         weights_path = config['weights_path'],
                         )

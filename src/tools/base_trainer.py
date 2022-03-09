@@ -4,7 +4,6 @@ from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import classification_report
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 import os
 import os.path as osp
 from datasets import load_metric
@@ -39,12 +38,13 @@ class BaseTrainer(ABC):
             val_data_loader,
             val_steps,
             checkpoint_frequency,
+            metric_frequency,
             model_name,
             weights_path,
             ) -> None:
         
         self.device = device
-        self.model = model.to(device)
+        self.model = torch.nn.DataParallel(model.to(device))
         self.epochs = epochs
         self.batch_size = batch_size
         self.loss_fn = loss_fn
@@ -56,26 +56,36 @@ class BaseTrainer(ABC):
         self.val_data_loader = val_data_loader
         self.val_steps = val_steps
         self.checkpoint_frequency = checkpoint_frequency
+        self.metric_frequency = metric_frequency
+        self.train_metric_steps = np.floor(metric_frequency * len(train_data_loader))
+        self.val_metric_steps = np.floor(metric_frequency * len(val_data_loader))
         self.model_name = model_name
         self.weights_path = weights_path
         self.mod_dir = weights_path + model_name + '/'
         self.log_dir = weights_path + model_name + '/log_dir/'
         self.ckp_dir = weights_path + model_name + '/ckp_dir/'
+        self.res_dir = weights_path + model_name + '/res_dir/'
 
         self.metric = load_metric('accuracy')
         self.tmp_metric = load_metric('accuracy')
         self.loss = {"train": [], "val": []}
         self.acc = {"train": [], "val": []}
+        self.epoch_loss = {"train": [], "val": []}
+        self.epoch_acc = {"train": [], "val": []}
         self.w = SummaryWriter(log_dir = self.log_dir)
         self.last_loss = np.inf
         self.trigger_times = 0
+
+        if self.train_metric_steps * self.val_metric_steps == 0:
+
+            raise ValueError('Chose lower frequency, there is not enough batches for this one')
 
 
 
     def train(self) -> None:
 
         self._summary()
-        self._write_graph()
+        #self._write_graph()
 
 
         print('.... Start training')
@@ -139,6 +149,16 @@ class BaseTrainer(ABC):
         self.w.add_scalars('accs', {'train_acc': self.acc['train'][-1],
                                         'val_acc': self.acc['val'][-1]}, epoch)
 
+        for i, (train_loss, val_loss) in enumerate(zip(self.epoch_loss['train'], self.epoch_loss['val'])):
+
+            self.w.add_scalars('epoch_losses', {'train_loss': train_loss,
+                                        'val_loss': val_loss}, epoch * np.floor(1 / self.metric_frequency) + i)
+
+        for i, (train_acc, val_acc) in enumerate(zip(self.epoch_acc['train'], self.epoch_acc['val'])):
+
+            self.w.add_scalars('epoch_acc', {'train_acc': train_acc,
+                                        'val_acc': val_acc}, epoch * np.floor(1 / self.metric_frequency) + i)
+
         for name, param in self.model.named_parameters():
 
             self.w.add_histogram(name, param, epoch)
@@ -180,6 +200,7 @@ class BaseTrainer(ABC):
                 self.epochs,
                 self.loss["train"][-1],
                 self.loss["val"][-1]))
+        print()
 
 
 
@@ -222,6 +243,7 @@ class BaseTrainer(ABC):
             self.trigger_times = 0
 
         self.last_loss = self.current_loss
+        print()
 
         return False
 
@@ -240,18 +262,30 @@ class BaseTrainer(ABC):
 
         with torch.no_grad():
 
-            _, out = self.model(ids, attention_mask = msk, labels = lbl)
+            _, out = self.model(ids, attention_mask = msk, labels = lbl).to_tuple()
 
         out = torch.argmax(out, axis = -1)
 
         flatten_lbl = lbl.view(-1) 
         flatten_pred = out.view(-1) 
 
-        print(flatten_pred.shape)
-        print(flatten_lbl.shape)
+        confusion = pd.crosstab(flatten_lbl.cpu(), flatten_pred.cpu())
+        report = classification_report(flatten_lbl.cpu(), flatten_pred.cpu())
+        report_dict = classification_report(flatten_lbl.cpu(), flatten_pred.cpu(), output_dict=True)
+        report_df = pd.DataFrame(report_dict).transpose()
+        print(report)
+        print(confusion)
 
-        print(classification_report(flatten_lbl.cpu(), flatten_pred.cpu()))
-        print(pd.crosstab(flatten_lbl.cpu(), flatten_pred.cpu()))
+        if not osp.exists(self.res_dir):
+            
+            os.makedirs(self.res_dir)
+        
+        conf_path = osp.join(self.res_dir, 'crosstab.csv')
+        confusion.to_csv(conf_path)
+
+        report_path = osp.join(self.res_dir, 'classification_report.csv')
+        report_df.to_csv(report_path)
+
 
 
 

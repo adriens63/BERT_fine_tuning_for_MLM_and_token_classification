@@ -3,13 +3,15 @@ all.jsonl
 sample.csv
 adri.jsonl
 martin.jsonl
+data/
 draft/
+weights/
 *.ipynb
 train_nb.ipynb
 *.pyc
 .~lock.*
+*.sh
 
-fine_tuned_bert_1.pt
-fine_tuned_bert.pt
+*.pt
 ckp_dir
 log_dir
