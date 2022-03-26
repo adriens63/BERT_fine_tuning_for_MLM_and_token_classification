@@ -75,7 +75,6 @@ class JsonlLoader:
 
                 start, end, label_kind = label
                 marked_words = standardize(sequence[start:end])
-                print(f'marked word : {marked_words}')
 
                 # remove first and last spaces of the beginning
                 beg_sequence = standardize(sequence[:start])
@@ -110,7 +109,6 @@ class Word2Int:
 
     def __init__(self) -> None:
 
-        #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
 
 
@@ -138,7 +136,8 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
         out = {key : val[idx].clone().detach() for key, val in self.encodings.items()}
         lbl = torch.zeros(size = out['input_ids'].shape, dtype = torch.long)
 
-        lbl[idx, self.selection[idx]] = 1
+        #TODO on a modifié al
+        lbl[self.selection[idx]] = 1
 
         out['labels'] = lbl
 
@@ -155,14 +154,12 @@ class JobDescriptionDataset(torch.utils.data.Dataset):
 
 class GetDataset:
 
-    def __init__(self, path: str, max_seq_length: int, batch_size: int, shuffle: bool) -> None:
+    def __init__(self, path: str, max_seq_length: int) -> None:
 
         self.jl = JsonlLoader(path)
         self.w2i = Word2Int()
 
         self.max_seq_length = max_seq_length
-        self.batch_size = batch_size
-        self.shuffle = shuffle
 
 
 
@@ -181,6 +178,5 @@ class GetDataset:
         print()
 
         dataset = JobDescriptionDataset(encodings = inp, selection = sel)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size = self.batch_size, shuffle = self.shuffle)
 
-        return dataloader
+        return dataset

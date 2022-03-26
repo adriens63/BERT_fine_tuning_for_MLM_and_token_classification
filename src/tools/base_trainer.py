@@ -314,4 +314,4 @@ class BaseTrainer(ABC):
         with open(loss_path, "w") as fp:
             
             json.dump(self.loss, fp)
-            json.dump(self.acc, fp)
+            #json.dump(self.acc, fp)

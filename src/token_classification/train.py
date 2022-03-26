@@ -1,7 +1,7 @@
 import yaml
 import argparse
 
-import src.mlm.archs.train_fn as t_fn
+import src.token_classification.archs.train_fn as t_fn
 
 
 
@@ -10,6 +10,7 @@ import src.mlm.archs.train_fn as t_fn
 
 # ********************* launch training ***********************
 # cmd to launch : python -m src.token_classification.train --config ./src/token_classification/config/config.yml
+# cmd to visualize : tensorboard --logdir=./src/token_classification/weights/fine_tuned_bert_1/log_dir/ --port=8013
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'bert training')

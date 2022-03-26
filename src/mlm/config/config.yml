@@ -13,7 +13,7 @@ optimizer: AdamW
 loss_fn: CrossEntropyLoss
 train_step: 16
 val_step: 8
-model_name: pre_trained_bert_1_06
+model_name: pre_trained_bert_1_00
 weights_path: ./src/mlm/weights/
 checkpoint_frequency: 2
 metric_frequency: 0.03
