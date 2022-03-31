@@ -1,6 +1,6 @@
-epochs: 3
+epochs: 10
 
-train_path: ./src/../data/labels/martin.jsonl
+train_path: ./src/../data/labels/out.jsonl
 val_frac: .2
 max_seq_length: 512
 frac_msk: 0.15
@@ -12,7 +12,7 @@ optimizer: AdamW
 loss_fn: CrossEntropyLoss
 train_step: 1024
 val_step: 1024
-model_name: fine_tuned_bert_1
+model_name: fine_tuned_bert_2
 weights_path: ./src/token_classification/weights/
 checkpoint_frequency: 2
 metric_frequency: 0.5
