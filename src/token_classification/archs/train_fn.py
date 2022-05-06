@@ -3,9 +3,9 @@ import gc
 import os.path as osp
 
 
-import src.mlm.archs.trainer as t
-import src.mlm.archs.data_loader as dl
-import src.mlm.models.camembert as c
+import src.token_classification.archs.trainer as t
+import src.token_classification.archs.ner_extractor as dl
+import src.token_classification.models.camembert as c
 from src.tools.helper import log_config
 
 
@@ -37,9 +37,7 @@ def train(config) -> None:
     loss_fn = loss_fn_class()
 
     get_full_ds = dl.GetDataset(config['train_path'], 
-                            config['max_seq_length'], 
-                            config['frac_msk'], 
-                            config['n_elements'])
+                            config['max_seq_length'])
     ds = get_full_ds.get_ds_ready()
     
     ds_size = len(ds)
@@ -79,6 +77,7 @@ def train(config) -> None:
     
     trainer.train()
     trainer.save_model()
+    trainer.classification_report()
     trainer.save_loss()
 
     log_config(config, osp.join(config['weights_path'], config['model_name']))

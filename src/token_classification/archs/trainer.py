@@ -19,6 +19,7 @@ from src.tools.base_trainer import BaseTrainer
 
 NON_LBL_TOKEN = -100  # TODO: put these tokens in file
 MAX_GRAD_NORM = 10
+NUM_LABELS = 2
 
 
 
@@ -49,7 +50,7 @@ class Trainer(BaseTrainer):
             weights_path
     ) -> None:
 
-        super(self, BaseTrainer).__init__(
+        super().__init__(
             device,
             model,
             epochs,
@@ -89,19 +90,23 @@ class Trainer(BaseTrainer):
 
             # out  = y_pred_logits
             loss, out = self.model(
-                input_ids=ids, attention_mask=msk, labels=lbl)
+                input_ids=ids, attention_mask=msk, labels=lbl).to_tuple()
+
 
             # loss
-            running_loss += loss.item()
+            epoch_loss = loss.sum().item()
+            running_loss += epoch_loss
 
             # accuracy
             # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
             flatten_lbl = lbl.view(-1)
 
             # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
-            flatten_logits = out.view(-1)
+            flatten_logits = out.view(-1, NUM_LABELS)
+
             # compute argmax along last axis to get shape [b * seq_lenght]
             flatten_pred = torch.argmax(flatten_logits, axis=1)
+
 
             # keeping only real lbls to perform comparison
             msk_unactive_lbl = flatten_lbl != NON_LBL_TOKEN
@@ -119,7 +124,7 @@ class Trainer(BaseTrainer):
             torch.nn.utils.clip_grad_norm(
                 parameters=self.model.parameters(), max_norm=MAX_GRAD_NORM)
 
-            loss.backwards()
+            loss.sum().backward()
             self.optimizer.step()
 
             desc = {'loss': loss.item(), 'accuracy': batch_accuracy}
@@ -152,16 +157,17 @@ class Trainer(BaseTrainer):
 
             with torch.no_grad():
 
-                loss, out = self.model(ids, attention_mask=msk, labels=lbl)
+                loss, out = self.model(ids, attention_mask=msk, labels=lbl).to_tuple()
 
-            running_loss += loss.item()
+            running_loss += loss.sum().item()
 
             # accuracy
             # from [b, seq_length] to [b * seq_length], we put all the lbl together to compare all at once
             flatten_lbl = lbl.view(-1)
 
             # from [b, seq_length, n_lbl] to [b * seq_length, n_lbl], we put all the predicted lbl together
-            flatten_logits = out.view(-1)
+            flatten_logits = out.view(-1, NUM_LABELS)
+
             # compute argmax along last axis to get shape [b, seq_lenght]
             flatten_pred = torch.argmax(flatten_logits, axis=1)
 
@@ -177,10 +183,6 @@ class Trainer(BaseTrainer):
                               flatten_real_pred).sum() / self.batch_size
             running_accuracy += batch_accuracy
 
-            logits = out.logits
-            predictions = torch.argmax(logits, dim=-1)
-            self.metric.add_batch(predictions=predictions,
-                                  references=batch["labels"])
 
             if i == self.val_steps:
 

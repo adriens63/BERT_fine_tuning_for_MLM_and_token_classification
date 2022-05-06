@@ -10,6 +10,7 @@ import src.mlm.archs.train_fn as t_fn
 
 # ********************* launch training ***********************
 # cmd to launch : python -m src.mlm.train --config ./src/mlm/config/config.yml
+#python -W ignore -m src.mlm.train --config ./src/mlm/config/config.yml
 # cmd to visualize : tensorboard --logdir=./src/mlm/weights/fine_tuned_bert_1/log_dir/ --port=8012
 
 if __name__ == '__main__':
